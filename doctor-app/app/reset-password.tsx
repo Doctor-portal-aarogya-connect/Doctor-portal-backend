@@ -1,0 +1,551 @@
+import { router } from "expo-router";
+import React, { useState, useRef, useEffect } from "react";
+import {
+    ScrollView,
+    View,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    StyleSheet,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    Animated,
+    Easing,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
+
+type Lang = "en" | "hi" | "pa";
+
+const LANGUAGE_LABELS: Record<Lang, string> = {
+    en: "English",
+    hi: "हिंदी",
+    pa: "ਪੰਜਾਬੀ",
+};
+
+/* ================= STRINGS ================= */
+const STRINGS: Record<Lang, any> = {
+    en: {
+        title: "Reset Password",
+        subtitle: "Recover access to your account",
+        username: "Username / Email",
+        usernamePh: "Enter your registered username",
+        button: "Send Reset Link",
+        back: "Back to Login",
+        english: "English",
+        hindi: "हिंदी",
+        punjabi: "ਪੰਜਾਬੀ",
+        buildLabel: "Build:",
+        slogan: "स्वास्थ्य ही सबसे बड़ी पूंजी है",
+    },
+    hi: {
+        title: "पासवर्ड रीसेट करें",
+        subtitle: "अपने खाते तक पुनः पहुंच प्राप्त करें",
+        username: "उपयोगकर्ता नाम / ईमेल",
+        usernamePh: "अपना पंजीकृत नाम दर्ज करें",
+        button: "रीसेट लिंक भेजें",
+        back: "लॉगिन पर वापस जाएँ",
+        english: "English",
+        hindi: "हिंदी",
+        punjabi: "ਪੰਜਾਬੀ",
+        buildLabel: "बिल्ड:",
+        slogan: "स्वास्थ्य ही सबसे बड़ी पूंजी है",
+    },
+    pa: {
+        title: "ਪਾਸਵਰਡ ਰੀਸੈੱਟ ਕਰੋ",
+        subtitle: "ਆਪਣੇ ਖਾਤੇ ਤੱਕ ਦੁਬਾਰਾ ਪਹੁੰਚ ਪ੍ਰਾਪਤ ਕਰੋ",
+        username: "ਯੂਜ਼ਰਨੇਮ / ਈਮੇਲ",
+        usernamePh: "ਰਜਿਸਟਰ ਕੀਤਾ ਯੂਜ਼ਰਨੇਮ ਦਰਜ ਕਰੋ",
+        button: "ਰੀਸੈੱਟ ਲਿੰਕ ਭੇਜੋ",
+        back: "ਲਾਗਇਨ ਤੇ ਵਾਪਸ ਜਾਓ",
+        english: "English",
+        hindi: "हिंदी",
+        punjabi: "ਪੰਜਾਬੀ",
+        buildLabel: "ਬਿਲਡ:",
+        slogan: "ਸਿਹਤ ਹੀ ਸਭ ਤੋਂ ਵੱਡੀ ਦੌਲਤ ਹੈ",
+    },
+};
+
+export default function ResetPasswordScreen() {
+    const [language, setLanguage] = useState<Lang>("en");
+    const [username, setUsername] = useState("");
+    const [isLangOpen, setIsLangOpen] = useState(false);
+
+    const insets = useSafeAreaInsets();
+    const t = STRINGS[language];
+
+    /* Animations – SAME AS LOGIN */
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const slideAnim = useRef(new Animated.Value(20)).current;
+    const btnScale = useRef(new Animated.Value(1)).current;
+
+    useEffect(() => {
+        Animated.parallel([
+            Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+            Animated.timing(slideAnim, {
+                toValue: 0,
+                duration: 600,
+                easing: Easing.out(Easing.ease),
+                useNativeDriver: true,
+            }),
+        ]).start();
+    }, []);
+
+    /**
+     * BACKEND:
+     * - Verify username/email
+     * - Send OTP / reset link
+     */
+    const handleReset = () => {
+        // backend API call here
+    };
+
+    return (
+        <LinearGradient colors={["#FFFFFF", "#F6F7FB"]} style={{ flex: 1 }}>
+            <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom }}>
+                <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+                    <ScrollView contentContainerStyle={styles.scrollContent}>
+                        <View style={styles.mainContent}>
+
+                            {/* ================= HEADER ================= */}
+                            <View style={styles.headerOuter}>
+                                <View style={styles.headerRow}>
+                                    <Image
+                                        source={require("../assets/images/app-logo.png")}
+                                        style={styles.logoPrimary}
+                                        resizeMode="contain"
+                                    />
+
+                                    <View style={styles.langDropdownWrapper}>
+                                        <TouchableOpacity
+                                            onPress={() => setIsLangOpen(!isLangOpen)}
+                                            style={styles.langDropdownButton}
+                                        >
+                                            <Text style={styles.langDropdownText}>
+                                                {language === "en" ? t.english : language === "hi" ? t.hindi : t.punjabi}
+                                            </Text>
+                                            <Text style={styles.langDropdownArrow}>{isLangOpen ? "▲" : "▼"}</Text>
+                                        </TouchableOpacity>
+
+                                        {isLangOpen && (
+                                            <View style={styles.langDropdownMenu}>
+                                                {(["en", "hi", "pa"] as Lang[]).map(l => (
+                                                    <LangOption
+                                                        key={l}
+                                                        label={LANGUAGE_LABELS[l]}
+                                                        selected={language === l}
+                                                        onPress={() => {
+                                                            setLanguage(l);
+                                                            setIsLangOpen(false);
+                                                        }}
+                                                    />
+                                                ))}
+
+                                            </View>
+                                        )}
+                                    </View>
+
+                                    <View style={styles.centerLogoContainer}>
+                                        <Image
+                                            source={require("../assets/images/partner-logo.png")}
+                                            style={styles.logoSecondary}
+                                            resizeMode="contain"
+                                        />
+                                    </View>
+                                </View>
+
+                                <View style={styles.tricolourStrip}>
+                                    <View style={[styles.triBlock, { backgroundColor: "#FF9933" }]} />
+                                    <View style={[styles.triBlock, { backgroundColor: "#FFFFFF" }]} />
+                                    <View style={[styles.triBlock, { backgroundColor: "#138808" }]} />
+                                </View>
+                            </View>
+
+                            {/* ================= RESET CARD ================= */}
+                            <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+                                <View style={styles.centerWrapper}>
+                                    <LinearGradient
+                                        colors={["#FF9933", "#FFFFFF", "#138808"]}
+                                        start={{ x: 0, y: 0.5 }}
+                                        end={{ x: 1, y: 0.5 }}
+                                        style={styles.cardGlowWrapper}
+                                    >
+                                        <View style={styles.cardWrapper}>
+                                            <BlurView intensity={25} tint="light" style={styles.card}>
+                                                <Text style={styles.title}>{t.title}</Text>
+                                                <Text style={styles.subtitle}>{t.subtitle}</Text>
+
+                                                <View style={styles.fieldGroup}>
+                                                    <Text style={styles.label}>{t.username}</Text>
+                                                    <TextInput
+                                                        style={styles.input}
+                                                        placeholder={t.usernamePh}
+                                                        value={username}
+                                                        onChangeText={setUsername}
+                                                    />
+                                                </View>
+
+                                                <Animated.View style={{ transform: [{ scale: btnScale }] }}>
+                                                    <TouchableOpacity style={styles.button} onPress={handleReset}>
+                                                        <Text style={styles.buttonText}>{t.button}</Text>
+                                                    </TouchableOpacity>
+                                                </Animated.View>
+
+                                                <View style={styles.linkGroup}>
+                                                    <TouchableOpacity onPress={() => router.replace("/")}>
+                                                        <Text style={styles.link}>{t.back}</Text>
+                                                    </TouchableOpacity>
+                                                </View>
+                                            </BlurView>
+                                        </View>
+                                    </LinearGradient>
+                                </View>
+                            </Animated.View>
+
+                            {/* ================= FOOTER ================= */}
+                            <View style={styles.footerOuter}>
+                                <View style={styles.footerInner}>
+                                    <Text style={styles.footerBuild}>{t.buildLabel} 08 Dec 2025</Text>
+                                    <Text style={styles.footerSlogan}>{t.slogan}</Text>
+                                </View>
+
+                                <View style={styles.tricolourStripFooter}>
+                                    <View style={[styles.triBlock, { backgroundColor: "#FF9933" }]} />
+                                    <View style={[styles.triBlock, { backgroundColor: "#FFFFFF" }]} />
+                                    <View style={[styles.triBlock, { backgroundColor: "#138808" }]} />
+                                </View>
+                            </View>
+
+                        </View>
+                    </ScrollView>
+                </KeyboardAvoidingView>
+            </View>
+        </LinearGradient>
+    );
+}
+
+/* ================= LANGUAGE OPTION ================= */
+const LangOption = ({ label, selected, onPress }) => (
+    <TouchableOpacity
+        onPress={onPress}
+        style={[styles.langOptionRow, selected && { backgroundColor: "rgba(37,99,235,0.08)" }]}
+    >
+        <Text style={[styles.langOptionText, selected && { color: "#2563EB", fontWeight: "700" }]}>
+            {label}
+        </Text>
+    </TouchableOpacity>
+);
+
+/* ================= STYLES ================= */
+/* SAME styles as login.tsx & signup.tsx – reuse exactly */
+const styles = StyleSheet.create({
+    /* =====================================================
+       GLOBAL LAYOUT
+       ===================================================== */
+    scrollContent: {
+        flexGrow: 1,
+        paddingHorizontal: 16,
+        paddingTop: 12,
+        paddingBottom: 16,
+    },
+
+    mainContent: {
+        flex: 1,
+        justifyContent: "space-between",
+    },
+
+    /* =====================================================
+       HEADER CONTAINER (Top box with shadow)
+       ===================================================== */
+    headerOuter: {
+        marginHorizontal: -16,
+        backgroundColor: "#FFFFFF",
+        paddingHorizontal: 16,
+        paddingTop: 18,
+        paddingBottom: 12,
+
+        // Box shadow (old design look)
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.12,
+        shadowRadius: 6,
+        elevation: 6,
+
+        position: "relative",
+        zIndex: 100,
+    },
+
+    /* =====================================================
+       HEADER ROW (Logos + Language selector)
+       ===================================================== */
+    headerRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        minHeight: 56, // keeps center logo vertically aligned
+    },
+
+    /* Left App Logo */
+    logoPrimary: {
+        width: 100,
+        height: 44,
+    },
+
+    /* Center Partner Logo (absolute centered) */
+    centerLogoContainer: {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        top: 0,
+        bottom: 0,
+        alignItems: "center",
+        justifyContent: "center",
+        pointerEvents: "none", // allows dropdown clicks
+    },
+
+    logoSecondary: {
+        width: 90,
+        height: 40,
+    },
+
+    /* =====================================================
+       LANGUAGE DROPDOWN
+       ===================================================== */
+    langDropdownWrapper: {
+        position: "relative",
+    },
+
+    langDropdownButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 999,
+        borderWidth: 1,
+        borderColor: "#cbd5e1",
+        backgroundColor: "#F9FAFB",
+    },
+
+    langDropdownText: {
+        fontSize: 12,
+        fontWeight: "600",
+        marginRight: 4,
+    },
+
+    langDropdownArrow: {
+        fontSize: 10,
+        color: "#64748B",
+    },
+
+    langDropdownMenu: {
+        position: "absolute",
+        right: 0,
+        top: 34,
+        backgroundColor: "#FFFFFF",
+        borderRadius: 10,
+        paddingVertical: 4,
+        minWidth: 120,
+
+        // 🔒 FORCE ALWAYS ON TOP
+        zIndex: 9999,
+        elevation: 20,
+
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.18,
+        shadowRadius: 8,
+    },
+
+
+    langOptionRow: {
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 6,
+    },
+
+    langOptionText: {
+        fontSize: 14,
+        color: "#334155",
+    },
+
+    /* =====================================================
+       TRICOLOUR STRIP (Header & Footer)
+       ===================================================== */
+    tricolourStrip: {
+        flexDirection: "row",
+        height: 3,
+        borderRadius: 999,
+        overflow: "hidden",
+        marginTop: 8,
+    },
+
+    tricolourStripFooter: {
+        flexDirection: "row",
+        height: 3,
+        borderRadius: 999,
+        overflow: "hidden",
+        marginTop: 8,
+    },
+
+    triBlock: {
+        flex: 1,
+    },
+
+    /* =====================================================
+       LOGIN CARD WRAPPER
+       ===================================================== */
+    centerWrapper: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        marginVertical: 10,
+    },
+
+    cardGlowWrapper: {
+        width: "92%",
+        maxWidth: 380,
+        borderRadius: 30,
+        padding: 2,
+
+        // glowing shadow
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.12,
+        shadowRadius: 18,
+        elevation: 4,
+    },
+
+    cardWrapper: {
+        borderRadius: 26,
+        overflow: "hidden",
+    },
+
+    card: {
+        paddingHorizontal: 22,
+        paddingVertical: 24,
+        borderRadius: 26,
+        backgroundColor: "rgba(255,255,255,0.95)",
+    },
+
+    /* =====================================================
+       CARD TEXT
+       ===================================================== */
+    title: {
+        textAlign: "center",
+        fontSize: 20,
+        fontWeight: "700",
+    },
+
+    subtitle: {
+        textAlign: "center",
+        fontSize: 13,
+        color: "#6B7280",
+        marginBottom: 20,
+    },
+
+    /* =====================================================
+       FORM FIELDS
+       ===================================================== */
+    fieldGroup: {
+        marginBottom: 14,
+    },
+
+    label: {
+        fontSize: 12,
+        fontWeight: "600",
+        marginBottom: 6,
+    },
+
+    input: {
+        borderWidth: 1,
+        borderColor: "#D1D5DB",
+        borderRadius: 14,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        backgroundColor: "#F9FAFB",
+    },
+
+    passwordRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingRight: 12,
+    },
+
+    inputError: {
+        borderColor: "#DC2626",
+    },
+
+    errorText: {
+        marginTop: 4,
+        fontSize: 11,
+        color: "#DC2626",
+    },
+
+    /* =====================================================
+       LOGIN BUTTON
+       ===================================================== */
+    button: {
+        marginTop: 12,
+        backgroundColor: "#2563EB",
+        borderRadius: 14,
+        paddingVertical: 12,
+        alignItems: "center",
+    },
+
+    buttonText: {
+        color: "#FFFFFF",
+        fontSize: 16,
+        fontWeight: "700",
+    },
+
+    /* =====================================================
+       LINKS BELOW BUTTON
+       ===================================================== */
+    linkGroup: {
+        marginTop: 14, // space after button
+        gap: 6,        // space between links
+    },
+
+    link: {
+        color: "#2563EB",
+        fontWeight: "600",
+        textAlign: "center",
+    },
+
+    /* =====================================================
+       FOOTER (Bottom box with shadow)
+       ===================================================== */
+    footerOuter: {
+        marginHorizontal: -16,
+        backgroundColor: "#FFFFFF",
+        paddingHorizontal: 16,
+        paddingTop: 10,
+        paddingBottom: 8,
+
+        // box shadow from top
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 5,
+        elevation: 3,
+    },
+
+    footerInner: {
+        alignItems: "center",
+        gap: 4,
+    },
+
+    footerBuild: {
+        fontSize: 12,
+        color: "#9CA3AF",
+    },
+
+    footerSlogan: {
+        fontSize: 14,
+        fontWeight: "600",
+        color: "#4B5563",
+        fontStyle: "italic",
+    },
+});
