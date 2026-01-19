@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
     View,
     Text,
@@ -12,77 +12,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
+import api from "./services/api";
 
 const { width, height } = Dimensions.get("window");
 
-/* ================= MOCK DATA ================= */
 
-const PATIENTS = [
-    {
-        patientId: "P-001",
-        name: "Rahul Sharma",
-        age: 28,
-        phone: "+91 98765 43210",
-        records: [
-            {
-                id: "R-101",
-                origin: "appointment",
-                date: "25/12/2025",
-                time: "09:00 AM",
-                type: "Cold",
-                description: "Severe nasal congestion and mild fever.",
-                prescription: "Cetirizine 10mg once daily",
-                advice: "Steam inhalation twice daily",
-            },
-            {
-                id: "R-102",
-                origin: "chatbot",
-                date: "02/11/2025",
-                time: "08:40 PM",
-                type: "Fever",
-                description: "Mild fever and body pain.",
-                prescription: "Paracetamol 650mg",
-                advice: "Rest and hydration",
-            },
-        ],
-    },
-    {
-        patientId: "P-002",
-        name: "Sneha Kapoor",
-        age: 31,
-        phone: "+91 91234 56789",
-        records: [
-            {
-                id: "R-201",
-                origin: "appointment",
-                date: "20/12/2025",
-                time: "10:15 AM",
-                type: "Injury",
-                description: "Deep cut on right palm.",
-                prescription: "Antibiotic ointment",
-                advice: "Keep wound clean and dry",
-            },
-        ],
-    },
-    {
-        patientId: "P-003",
-        name: "Vikram Singh",
-        age: 45,
-        phone: "+91 99887 76655",
-        records: [
-            {
-                id: "R-301",
-                origin: "appointment",
-                date: "18/12/2025",
-                time: "11:30 AM",
-                type: "Fever",
-                description: "High fever with chills.",
-                prescription: "Paracetamol + fluids",
-                advice: "Monitor temperature",
-            },
-        ],
-    },
-];
 
 /* ================= COMPONENT ================= */
 
@@ -90,15 +24,98 @@ export default function Record() {
     const insets = useSafeAreaInsets();
     const params = useLocalSearchParams();
     const [selectedPatient, setSelectedPatient] = useState<any>(null);
+    const [patientsList, setPatientsList] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    React.useEffect(() => {
-        if (params.phone) {
-            const patient = PATIENTS.find((p) => p.phone === params.phone);
-            if (patient) {
-                setSelectedPatient(patient);
+    useEffect(() => {
+        fetchHistory();
+    }, []);
+
+    const fetchHistory = async () => {
+        try {
+            setLoading(true);
+            const [apptRes, recordRes] = await Promise.all([
+                api.get('/appointments'),
+                api.get('/records')
+            ]);
+
+            const patientMap = new Map();
+
+            // Process Appointments
+            if (apptRes.data.ok) {
+                apptRes.data.appointments.forEach((a: any) => {
+                    if (!a.userId) return; // Skip if no user linked
+                    const pId = a.userId._id;
+
+                    if (!patientMap.has(pId)) {
+                        patientMap.set(pId, {
+                            patientId: pId,
+                            name: a.userId.fullName || 'Unknown',
+                            age: a.userId.age || 'N/A',
+                            phone: a.userId.mobile || a.mobile || 'N/A',
+                            records: []
+                        });
+                    }
+
+                    patientMap.get(pId).records.push({
+                        id: a._id,
+                        origin: "appointment",
+                        date: new Date(a.preferredDate || a.createdAt).toLocaleDateString(),
+                        time: a.preferredTime || 'N/A',
+                        type: a.problem || 'Consulation',
+                        description: a.problem,
+                        prescription: a.status === 'completed' ? 'View details' : 'Pending',
+                        advice: "Check details in history",
+                        status: a.status,
+                        createdAt: new Date(a.createdAt)
+                    });
+                });
             }
+
+            // Process Records (Chatbot/Queries)
+            if (recordRes.data.ok) {
+                recordRes.data.records.forEach((r: any) => {
+                    if (!r.userId) return;
+                    const pId = r.userId._id;
+
+                    if (!patientMap.has(pId)) {
+                        patientMap.set(pId, {
+                            patientId: pId,
+                            name: r.userId.fullName || 'Unknown',
+                            age: r.userId.age || 'N/A',
+                            phone: r.userId.mobile || r.phone || 'N/A',
+                            records: []
+                        });
+                    }
+
+                    patientMap.get(pId).records.push({
+                        id: r._id,
+                        origin: "chatbot",
+                        date: new Date(r.createdAt).toLocaleDateString(),
+                        time: new Date(r.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        type: r.summary || "Query",
+                        description: r.details,
+                        prescription: r.doctorResponse || "Pending",
+                        advice: r.doctorResponse ? "Resolved" : "Waiting",
+                        status: r.status,
+                        createdAt: new Date(r.createdAt)
+                    });
+                });
+            }
+
+            // Convert Map to Array and Sort records by date
+            const pList = Array.from(patientMap.values()).map(p => {
+                p.records.sort((a: any, b: any) => b.createdAt - a.createdAt);
+                return p;
+            });
+
+            setPatientsList(pList);
+        } catch (err) {
+            console.error("Failed to fetch history", err);
+        } finally {
+            setLoading(false);
         }
-    }, [params.phone]);
+    };
 
     return (
         <View style={styles.container}>
@@ -110,11 +127,11 @@ export default function Record() {
 
             {/* HEADER */}
             <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-                <TouchableOpacity onPress={() => router.back()}>
+                <TouchableOpacity onPress={() => selectedPatient ? setSelectedPatient(null) : router.back()}>
                     <Feather name="chevron-left" size={24} color="#6366F1" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>
-                    {selectedPatient ? "Patient Records" : "Patients"}
+                    {selectedPatient ? "Patient Records" : "Patients Archive"}
                 </Text>
                 <View style={{ width: 24 }} />
             </View>
@@ -122,26 +139,33 @@ export default function Record() {
             {/* ================= PATIENT LIST ================= */}
             {!selectedPatient && (
                 <ScrollView contentContainerStyle={styles.listArea}>
-                    {PATIENTS.map((p) => (
-                        <TouchableOpacity
-                            key={p.patientId}
-                            style={styles.patientCard}
-                            onPress={() => setSelectedPatient(p)}
-                        >
-                            <View style={styles.avatar}>
-                                <Text style={styles.avatarText}>{p.name[0]}</Text>
-                            </View>
+                    {loading ? (
+                        <Text style={{ textAlign: 'center', marginTop: 20, color: '#94A3B8' }}>Loading history...</Text>
+                    ) : (
+                        patientsList.map((p) => (
+                            <TouchableOpacity
+                                key={p.patientId}
+                                style={styles.patientCard}
+                                onPress={() => setSelectedPatient(p)}
+                            >
+                                <View style={styles.avatar}>
+                                    <Text style={styles.avatarText}>{p.name[0]}</Text>
+                                </View>
 
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.patientName}>{p.name}</Text>
-                                <Text style={styles.patientMeta}>
-                                    Age {p.age} • {p.records.length} records
-                                </Text>
-                            </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.patientName}>{p.name}</Text>
+                                    <Text style={styles.patientMeta}>
+                                        Age {p.age} • {p.records.length} records
+                                    </Text>
+                                </View>
 
-                            <Feather name="chevron-right" size={20} color="#94A3B8" />
-                        </TouchableOpacity>
-                    ))}
+                                <Feather name="chevron-right" size={20} color="#94A3B8" />
+                            </TouchableOpacity>
+                        ))
+                    )}
+                    {!loading && patientsList.length === 0 && (
+                        <Text style={{ textAlign: 'center', marginTop: 20, color: '#94A3B8' }}>No patient history found.</Text>
+                    )}
                 </ScrollView>
             )}
 

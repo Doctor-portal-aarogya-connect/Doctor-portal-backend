@@ -102,8 +102,10 @@ export default function ExplorePatients() {
       }
 
       const [apptRes, recordRes] = await Promise.all([
-        api.get('/appointments'),
-        api.get('/records')
+        // Only fetch ACTIVE appointments
+        api.get('/appointments?status=pending,confirmed'),
+        // Only fetch ACTIVE records (bot queries)
+        api.get('/records?status=pending,processing')
       ]);
 
       if (apptRes.data.ok) {
@@ -131,8 +133,8 @@ export default function ExplorePatients() {
           queryId: r.queryNumber || r._id.substring(0, 8),
           time: new Date(r.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           date: new Date(r.createdAt).toLocaleDateString(),
-          name: 'Anonymous User', // Records might not have names if generic
-          phone: r.phone || 'N/A',
+          name: r.userId?.fullName || 'Anonymous User', // Updated mapping
+          phone: r.phone || r.userId?.mobile || 'N/A', // Improved phone mapping
           type: 'Query',
           summary: r.summary,
           details: r.details,
@@ -198,7 +200,10 @@ export default function ExplorePatients() {
         if (res.data.ok) {
           Alert.alert("Success", "Patient marked as attended.");
           setModalVisible(false);
-          fetchData();
+          // Refresh logic - wait slightly for modals to close
+          setTimeout(() => {
+            fetchData();
+          }, 500);
         }
       } catch (err) {
         Alert.alert("Error", "Failed to update appointment.");
@@ -220,7 +225,10 @@ export default function ExplorePatients() {
           if (res.data.ok) {
             Alert.alert("Sent", "Prescription sent and query resolved.");
             setModalVisible(false);
-            fetchData();
+            // Refresh logic - wait slightly for modals to close
+            setTimeout(() => {
+              fetchData();
+            }, 500);
           }
         } catch (err) {
           Alert.alert("Error", "Failed to send response.");
