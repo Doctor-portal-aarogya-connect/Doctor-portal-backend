@@ -2,10 +2,23 @@ const Appointment = require('../models/Appointment');
 
 async function getAppointments(req, res) {
     try {
+        const { userId, status, excludeStatus } = req.query;
+
+        const query = {};
+        if (userId) query.userId = userId;
+
+        if (status) {
+            const statusList = status.split(',');
+            query.status = { $in: statusList };
+        } else if (excludeStatus) {
+            const excludeList = excludeStatus.split(',');
+            query.status = { $nin: excludeList };
+        }
+
         // Fetch all appointments, sorted by date (newest first)
-        const appointments = await Appointment.find()
+        const appointments = await Appointment.find(query)
             .sort({ createdAt: -1 })
-            .populate('userId', 'fullName mobile email'); // Populate patient details if needed
+            .populate('userId', 'fullName mobile email age gender'); // Populate patient details
 
         return res.json({ ok: true, appointments });
     } catch (err) {

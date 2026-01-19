@@ -3,9 +3,24 @@ const mongoose = require('mongoose');
 
 async function getRecords(req, res) {
     try {
-        const records = await Record.find()
+        const { userId, status, excludeStatus } = req.query;
+
+        // Build query object
+        const query = {};
+        if (userId) query.userId = userId;
+
+        if (status) {
+            // Support comma-separated status
+            const statusList = status.split(',');
+            query.status = { $in: statusList };
+        } else if (excludeStatus) {
+            const excludeList = excludeStatus.split(',');
+            query.status = { $nin: excludeList };
+        }
+
+        const records = await Record.find(query)
             .sort({ createdAt: -1 })
-            .populate('userId', 'fullName mobile email');
+            .populate('userId', 'fullName mobile email age gender'); // Added age/gender if available using reusable user schema
 
         // Records now have direct URLs in gridFsId
         const recordsWithUrls = records.map(r => {
