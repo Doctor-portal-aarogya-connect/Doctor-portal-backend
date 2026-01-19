@@ -216,7 +216,11 @@ export default function DoctorDashboard() {
             color="#3B82F6"
             onPress={() => router.push("/ExplorePatients")}
           />
-          <ServiceBtn icon="folder-account" label="Records" color="#8B5CF6" />
+          <ServiceBtn 
+            icon="folder-account" 
+            label="Records" 
+            color="#8B5CF6" 
+            onPress={() => router.push("/record")}/>
           <ServiceBtn icon="clipboard-text" label="Labs" color="#10B981" />
           <ServiceBtn icon="chat-processing" label="Messages" color="#F59E0B" />
         </View>
