@@ -3,6 +3,7 @@ const Appointment = require('../models/Appointment');
 async function getAppointments(req, res) {
     try {
         const { userId, status, excludeStatus } = req.query;
+        console.log('DEBUG: getAppointments query:', req.query); // Added Log
 
         const query = {};
         if (userId) query.userId = userId;

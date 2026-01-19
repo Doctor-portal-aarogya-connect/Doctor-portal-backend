@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 async function getRecords(req, res) {
     try {
         const { userId, status, excludeStatus } = req.query;
+        console.log('DEBUG: getRecords called with query:', req.query); // Added log
 
         // Build query object
         const query = {};
