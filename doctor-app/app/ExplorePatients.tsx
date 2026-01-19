@@ -54,6 +54,24 @@ export default function ExplorePatients() {
   const [loading, setLoading] = useState(true);
   const [doctorProfile, setDoctorProfile] = useState<any>(null); // Added state
 
+  const handleViewHistory = () => {
+    if (!selectedPatient) return;
+
+    setModalVisible(false);
+
+    setTimeout(() => {
+      router.push({
+        pathname: "/patient-record",
+        params: {
+          patientData: JSON.stringify(selectedPatient),
+        },
+      });
+    }, 300);
+  };
+
+
+
+
   // Filtered List based on active tab
   const [filteredList, setFilteredList] = useState<any[]>([]);
 
@@ -400,21 +418,35 @@ export default function ExplorePatients() {
               )}
             </ScrollView>
 
-            <TouchableOpacity
-              style={[
-                styles.primaryAction,
-                activeTab === 'appointment' && { backgroundColor: '#10B981' },
-                activeTab === 'chatbot' && !isResponding && { backgroundColor: '#6366F1' },
-                isResponding && { backgroundColor: '#4F46E5' }
-              ]}
-              onPress={handlePrimaryAction}
-            >
-              <Text style={styles.primaryActionText}>
-                {activeTab === 'appointment'
-                  ? "Attend Patient"
-                  : (isResponding ? "Send Rx to Patient" : "Review & Respond")}
-              </Text>
-            </TouchableOpacity>
+            <View style={{ marginTop: 20 }}>
+
+              {/* VIEW PATIENT HISTORY BUTTON */}
+              <TouchableOpacity
+                style={styles.historyBtn}
+                onPress={handleViewHistory}
+              >
+                <Feather name="clock" size={18} color="#6366F1" />
+                <Text style={styles.historyBtnText}>View Patient History</Text>
+              </TouchableOpacity>
+
+              {/* ATTEND PATIENT / SEND RX BUTTON */}
+              <TouchableOpacity
+                style={[
+                  styles.primaryAction,
+                  activeTab === 'appointment' && { backgroundColor: '#10B981' },
+                  activeTab === 'chatbot' && !isResponding && { backgroundColor: '#6366F1' },
+                  isResponding && { backgroundColor: '#4F46E5' }
+                ]}
+                onPress={handlePrimaryAction}
+              >
+                <Text style={styles.primaryActionText}>
+                  {activeTab === 'appointment'
+                    ? "Attend Patient"
+                    : (isResponding ? "Send Rx to Patient" : "Review & Respond")}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
           </View>
         </View>
 
@@ -770,5 +802,23 @@ const styles = StyleSheet.create({
     height: 65,
     borderRadius: 32.5,
     backgroundColor: '#FFF'
-  }
+  },
+  historyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#6366F1',
+    marginTop: 18,
+  },
+
+  historyBtnText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#6366F1',
+  },
+
 });
