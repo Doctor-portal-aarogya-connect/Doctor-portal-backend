@@ -54,6 +54,24 @@ export default function ExplorePatients() {
   const [loading, setLoading] = useState(true);
   const [doctorProfile, setDoctorProfile] = useState<any>(null); // Added state
 
+  const handleViewHistory = () => {
+    if (!selectedPatient) return;
+
+    setModalVisible(false);
+
+    setTimeout(() => {
+      router.push({
+        pathname: "/patient-record",
+        params: {
+          patientData: JSON.stringify(selectedPatient),
+        },
+      });
+    }, 300);
+  };
+
+
+
+
   // Filtered List based on active tab
   const [filteredList, setFilteredList] = useState<any[]>([]);
 
@@ -84,8 +102,10 @@ export default function ExplorePatients() {
       }
 
       const [apptRes, recordRes] = await Promise.all([
-        api.get('/appointments'),
-        api.get('/records')
+        // Only fetch ACTIVE appointments
+        api.get('/appointments?status=pending,confirmed'),
+        // Only fetch ACTIVE records (bot queries)
+        api.get('/records?status=pending,processing')
       ]);
 
       if (apptRes.data.ok) {
@@ -113,8 +133,8 @@ export default function ExplorePatients() {
           queryId: r.queryNumber || r._id.substring(0, 8),
           time: new Date(r.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           date: new Date(r.createdAt).toLocaleDateString(),
-          name: 'Anonymous User', // Records might not have names if generic
-          phone: r.phone || 'N/A',
+          name: r.userId?.fullName || 'Anonymous User', // Updated mapping
+          phone: r.phone || r.userId?.mobile || 'N/A', // Improved phone mapping
           type: 'Query',
           summary: r.summary,
           details: r.details,
@@ -180,7 +200,10 @@ export default function ExplorePatients() {
         if (res.data.ok) {
           Alert.alert("Success", "Patient marked as attended.");
           setModalVisible(false);
-          fetchData();
+          // Refresh logic - wait slightly for modals to close
+          setTimeout(() => {
+            fetchData();
+          }, 500);
         }
       } catch (err) {
         Alert.alert("Error", "Failed to update appointment.");
@@ -202,7 +225,10 @@ export default function ExplorePatients() {
           if (res.data.ok) {
             Alert.alert("Sent", "Prescription sent and query resolved.");
             setModalVisible(false);
-            fetchData();
+            // Refresh logic - wait slightly for modals to close
+            setTimeout(() => {
+              fetchData();
+            }, 500);
           }
         } catch (err) {
           Alert.alert("Error", "Failed to send response.");
@@ -400,21 +426,35 @@ export default function ExplorePatients() {
               )}
             </ScrollView>
 
-            <TouchableOpacity
-              style={[
-                styles.primaryAction,
-                activeTab === 'appointment' && { backgroundColor: '#10B981' },
-                activeTab === 'chatbot' && !isResponding && { backgroundColor: '#6366F1' },
-                isResponding && { backgroundColor: '#4F46E5' }
-              ]}
-              onPress={handlePrimaryAction}
-            >
-              <Text style={styles.primaryActionText}>
-                {activeTab === 'appointment'
-                  ? "Attend Patient"
-                  : (isResponding ? "Send Rx to Patient" : "Review & Respond")}
-              </Text>
-            </TouchableOpacity>
+            <View style={{ marginTop: 20 }}>
+
+              {/* VIEW PATIENT HISTORY BUTTON */}
+              <TouchableOpacity
+                style={styles.historyBtn}
+                onPress={handleViewHistory}
+              >
+                <Feather name="clock" size={18} color="#6366F1" />
+                <Text style={styles.historyBtnText}>View Patient History</Text>
+              </TouchableOpacity>
+
+              {/* ATTEND PATIENT / SEND RX BUTTON */}
+              <TouchableOpacity
+                style={[
+                  styles.primaryAction,
+                  activeTab === 'appointment' && { backgroundColor: '#10B981' },
+                  activeTab === 'chatbot' && !isResponding && { backgroundColor: '#6366F1' },
+                  isResponding && { backgroundColor: '#4F46E5' }
+                ]}
+                onPress={handlePrimaryAction}
+              >
+                <Text style={styles.primaryActionText}>
+                  {activeTab === 'appointment'
+                    ? "Attend Patient"
+                    : (isResponding ? "Send Rx to Patient" : "Review & Respond")}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
           </View>
         </View>
 
@@ -770,5 +810,23 @@ const styles = StyleSheet.create({
     height: 65,
     borderRadius: 32.5,
     backgroundColor: '#FFF'
-  }
+  },
+  historyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#6366F1',
+    marginTop: 18,
+  },
+
+  historyBtnText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#6366F1',
+  },
+
 });
